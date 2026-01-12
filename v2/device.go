@@ -532,3 +532,35 @@ func (d Device) InitiatorPollTarget(modulations []Modulation, times int, period 
 	// nothing found
 	return
 }
+
+func (d Device) TransceiveBytes(tx, rx []byte, timeout int) (n int, err error) {
+	if *d.d == nil {
+		return ESOFT, errors.New("device closed")
+	}
+
+	txptr := (*C.uint8_t)(&tx[0])
+
+	if rx == nil {
+		n = int(C.nfc_transceive_bytes(
+			*d.d,
+			txptr, C.size_t(len(tx)),
+			nil, 0,
+			C.int(timeout),
+		))
+	} else {
+		rxptr := (*C.uint8_t)(&rx[0])
+
+		n = int(C.nfc_transceive_bytes(
+			*d.d,
+			txptr, C.size_t(len(tx)),
+			rxptr, C.size_t(len(rx)),
+			C.int(timeout),
+		))
+	}
+
+	if n < 0 {
+		err = Error(n)
+	}
+
+	return
+}
