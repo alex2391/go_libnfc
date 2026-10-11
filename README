@@ -20,7 +20,7 @@ only version 2.1.0 and later are available.
 
 To use this library, install libnfc version 1.8.0 or newer and import
 
-    github.com/clausecker/nfc/v2
+    github.com/alex2391/go_libnfc/v2
 
 into your project.  Pkg-config is used to find libnfc automatically.  If
 this does not work, you can compile with tag nopkgconfig or no_pkgconfig

@@ -533,30 +533,36 @@ func (d Device) InitiatorPollTarget(modulations []Modulation, times int, period 
 	return
 }
 
+// Send a raw command to the PN53x chip itself and receive its answer. tx holds
+// the command code followed by its parameters (e.g. WriteRegister 0x08 or
+// ReadGPIO 0x0C); nothing is sent to a target, unlike InitiatorTransceiveBytes().
+// The answer is stored in rx as is, no status byte is stripped. rx may be nil
+// if the answer is not needed. Returns the number of bytes received.
+//
+// This requires a libnfc patched with nfc_transceive_bytes() and is only
+// supported by the pn532_uart driver.
 func (d Device) TransceiveBytes(tx, rx []byte, timeout int) (n int, err error) {
 	if *d.d == nil {
 		return ESOFT, errors.New("device closed")
 	}
 
+	if len(tx) == 0 {
+		return ESOFT, errors.New("empty command")
+	}
+
 	txptr := (*C.uint8_t)(&tx[0])
 
-	if rx == nil {
-		n = int(C.nfc_transceive_bytes(
-			*d.d,
-			txptr, C.size_t(len(tx)),
-			nil, 0,
-			C.int(timeout),
-		))
-	} else {
-		rxptr := (*C.uint8_t)(&rx[0])
-
-		n = int(C.nfc_transceive_bytes(
-			*d.d,
-			txptr, C.size_t(len(tx)),
-			rxptr, C.size_t(len(rx)),
-			C.int(timeout),
-		))
+	var rxptr *C.uint8_t
+	if len(rx) > 0 {
+		rxptr = (*C.uint8_t)(&rx[0])
 	}
+
+	n = int(C.nfc_transceive_bytes(
+		*d.d,
+		txptr, C.size_t(len(tx)),
+		rxptr, C.size_t(len(rx)),
+		C.int(timeout),
+	))
 
 	if n < 0 {
 		err = Error(n)
